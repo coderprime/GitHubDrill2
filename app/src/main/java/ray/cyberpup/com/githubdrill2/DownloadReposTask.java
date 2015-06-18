@@ -15,18 +15,18 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * Created on 6/17/15
+ * Created on 6/18/15
  *
  * @author Raymond Tong
  */
-public class DownloadTask extends Fragment {
+public class DownloadReposTask extends Fragment {
 
-    private static final String LOG_TAG = DownloadTask.class.getSimpleName();
-    private static final String BASE_URL =
-            "https://api.github.com/search/users?q=";
+    private static final String LOG_TAG = DownloadReposTask.class.getSimpleName();
+
+    private static final String SORT_BY="sort=";
 
     TaskListener mListener;
-    DownloadAsyncTask mTask;
+    DownloadReposAsyncTask mTask;
     private String mQuery;
     interface TaskListener{
 
@@ -36,9 +36,9 @@ public class DownloadTask extends Fragment {
         public void onCancelled();
     }
 
-    public static DownloadTask getInstance(String query){
+    public static DownloadReposTask getInstance(String query){
 
-        DownloadTask taskFragment = new DownloadTask();
+        DownloadReposTask taskFragment = new DownloadReposTask();
         Bundle args = new Bundle();
         args.putString("query",query);
 
@@ -54,7 +54,7 @@ public class DownloadTask extends Fragment {
     }
 
     public void beginTask(){
-        mTask = new DownloadAsyncTask();
+        mTask = new DownloadReposAsyncTask();
         mQuery = getArguments().getString("query");
         mTask.execute(mQuery);
     }
@@ -89,7 +89,7 @@ public class DownloadTask extends Fragment {
     }
 
     int mInput;
-    private class DownloadAsyncTask extends AsyncTask<String, Integer, String> {
+    private class DownloadReposAsyncTask extends AsyncTask<String, Integer, String> {
 
 
         @Override
@@ -102,7 +102,7 @@ public class DownloadTask extends Fragment {
         @Override
         protected void onPostExecute(String results) {
             if(mListener!=null)
-                mListener.onPostExecute(results,1);
+                mListener.onPostExecute(results, 2);
 
         }
 
@@ -128,7 +128,7 @@ public class DownloadTask extends Fragment {
 
         }
 
-        private String downloadJSON(String query){
+        private String downloadJSON(String queryUrl){
 
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
@@ -140,7 +140,7 @@ public class DownloadTask extends Fragment {
 
             try {
                 // Construct URL
-                URL url = new URL(BASE_URL+query);
+                URL url = new URL(queryUrl);
 
                 // Create the request to OpenWeatherMap, and open the connection
                 urlCon = (HttpURLConnection) url.openConnection();
@@ -180,7 +180,7 @@ public class DownloadTask extends Fragment {
                     } else {
                         jsonStr = stringBuffer.toString();
                         // DEBUG
-                        // Log.d(LOG_TAG, jsonStr);
+                        Log.d(LOG_TAG, jsonStr);
 
                     }
                     return jsonStr;
@@ -203,8 +203,6 @@ public class DownloadTask extends Fragment {
                 }
             }
 
-
-
             // Happens if error in parsing or getting data
             return null;
         }
@@ -220,5 +218,4 @@ public class DownloadTask extends Fragment {
 
 
     }
-
 }

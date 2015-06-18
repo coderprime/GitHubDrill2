@@ -2,6 +2,8 @@ package ray.cyberpup.com.githubdrill2;
 
 import android.app.SearchManager;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -9,8 +11,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.SimpleAdapter;
@@ -19,12 +24,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Created on 6/17/15
@@ -33,7 +41,8 @@ import java.util.Set;
  */
 public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.TaskListener {
 
-    private static final String DOWNLOAD = "download";
+    private static final String DOWNLOAD_USERS = "download_users";
+    private static final String DOWNLOAD_REPOS = "download_repos";
     private ListView mListView;
     private SearchView mSearch;
 
@@ -45,6 +54,15 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         setContentView(R.layout.activity_main);
 
         mListView = (ListView) findViewById(R.id.userlistview);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                HashMap<String,Object> hm = (HashMap<String, Object>) parent.getItemAtPosition(position);
+                String repoUrl = (String) hm.get("repos_url");
+                //DEBUG
+                System.out.println(repoUrl);
+            }
+        });
     }
 
 
@@ -58,20 +76,50 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         //Do Nothing
     }
 
+    /**
+     * resultCodes:
+     * 1 json string from user query
+     * 2 json string from repo query
+     */
     @Override
-    public void onPostExecute(String results) {
+    public void onPostExecute(String results, int resultCode) {
 
 
-        ListViewLoaderTask task = new ListViewLoaderTask();
-        task.execute(results);
+        // DEBUG
+        System.out.println("onPostExecute resultCode: " + resultCode);
+        switch (resultCode) {
+            case 1:
+                ListViewLoaderTask task = new ListViewLoaderTask();
+                task.execute(results);
+                break;
 
-        cleanUp();
+            case 2:
+
+                break;
+
+        }
+
+        cleanUp(resultCode);
+
     }
 
-    private void cleanUp() {
+    private void cleanUp(int resultCode) {
 
+        // DEBUG
+        System.out.println("cleanUp resultCode: " + resultCode);
         FragmentManager man = getSupportFragmentManager();
-        Fragment fragment = man.findFragmentByTag(DOWNLOAD);
+        Fragment fragment = null;
+        switch (resultCode){
+
+            case 1:
+                fragment = man.findFragmentByTag(DOWNLOAD_USERS);
+                break;
+
+            case 2:
+                fragment = man.findFragmentByTag(DOWNLOAD_REPOS);
+                break;
+
+        }
         if (fragment != null)
             man.beginTransaction().remove(fragment).commit();
     }
@@ -81,20 +129,15 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         // do nothing
     }
 
-    private class JSONParser {
-
-    }
-
     private void performSearch(String query) {
         DownloadTask taskFrag = (DownloadTask) getSupportFragmentManager().
-                findFragmentByTag(DOWNLOAD);
-
+                findFragmentByTag(DOWNLOAD_USERS);
 
         if (taskFrag == null) {
 
             FragmentTransaction tran = getSupportFragmentManager().beginTransaction();
             DownloadTask frag = DownloadTask.getInstance(query);
-            tran.add(frag, DOWNLOAD).commit();
+            tran.add(frag, DOWNLOAD_USERS).commit();
             frag.beginTask();
         } else {
 
@@ -121,8 +164,6 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             @Override
             public boolean onQueryTextSubmit(String query) {
 
-                System.out.println("onQueryTextSubmitted");
-
                 performSearch(query);
                 return false;
             }
@@ -133,8 +174,6 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
                 return false;
             }
         });
-
-
         return true;
     }
 
@@ -146,6 +185,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         final String GIT_USERID = "login";
         final String GIT_AVATAR = "avatar_url";
         final String GIT_REPOS = "repos_url";
+        final String USER_POSITION = "position";
 
         @Override
         protected SimpleAdapter doInBackground(String... jsonString) {
@@ -164,9 +204,9 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             }
 
             //Keys
-            String[] keys = {GIT_USERID};
+            String[] keys = {GIT_USERID, GIT_AVATAR};
             //ID of Views
-            int[] ids = {R.id.userTextView};
+            int[] ids = {R.id.userTextView, R.id.userImageView};
 
             SimpleAdapter adapter = new SimpleAdapter(GitHubDrill2.this, users,
                     R.layout.single_row,
@@ -220,20 +260,24 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
             mListView.setAdapter(adapter);
 
-            /*
-            ImageLoaderTask task = new ImageLoaderTask();
+            String imgUrl = null;
 
-            for (HashMap<String, Object> user : users) {
+            for (int i = 0; i < adapter.getCount(); i++) {
 
-                for (String key : user.keySet()) {
-
-                    if (key == GIT_USERID)
-                        System.out.println("user:" + user.get(GIT_USERID));
+                HashMap<String, Object> hm = (HashMap<String, Object>) adapter.getItem(i);
+                if (hm != null) {
+                    imgUrl = (String) hm.get(GIT_AVATAR);
                 }
 
+                ImageLoaderTask imageLoaderTask = new ImageLoaderTask();
+
+                HashMap<String, Object> avatarDownload = new HashMap<String, Object>();
+                avatarDownload.put(GIT_AVATAR, imgUrl);
+                avatarDownload.put(USER_POSITION, i);
+
+                imageLoaderTask.execute(avatarDownload);
             }
-            task.execute()
-            */
+     /*       */
 
         }
 
@@ -243,21 +287,19 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
     private class ImageLoaderTask extends AsyncTask<HashMap<String, Object>, Void,
             HashMap<String, Object>> {
 
-
+        final String GIT_AVATAR = "avatar_url";
+        final String USER_POSITION = "position";
         final String LOG_TAG = ImageLoaderTask.class.getSimpleName();
 
         @Override
-        protected HashMap<String, Object> doInBackground(HashMap<String, Object>... usersData) {
+        protected HashMap<String, Object> doInBackground(HashMap<String, Object>... userAvatar) {
 
-            // These two need to be declared outside the try/catch
-            // so that they can be closed in the finally block.
             HttpURLConnection urlCon = null;
-            BufferedReader reader = null;
 
-            Set<String> keys = usersData[0].keySet();
-            for (String key : keys)
-                System.out.println("key:" + key);
-/*
+            String imgUrl = (String) userAvatar[0].get(GIT_AVATAR);
+            int position = (Integer) userAvatar[0].get(USER_POSITION);
+
+
             try {
                 // Construct URL
                 URL url = new URL(imgUrl);
@@ -271,33 +313,43 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
                 //urlCon.setRequestProperty("X-CZ-Authorization", AUTH_TOKEN);
                 urlCon.connect();
 
-                if(urlCon.getResponseCode() == 200) {
+                if (urlCon.getResponseCode() == 200) {
 
                     // Connection successful
                     InputStream inputStream = urlCon.getInputStream();
 
-                    if (inputStream == null) {
-                        return null;
-                    }
+                    // Get Caching Directory
+                    File cacheDirectory = getBaseContext().getCacheDir();
 
-                    // Synchronized mutable sequence of characters
-                    StringBuffer stringBuffer = new StringBuffer();
+                    // Temporary file to store downloaded image
+                    File tempFile = new File(cacheDirectory.getPath() + "/gitavatar_" + position + ".png");
 
-                    // byte to character bridge
-                    // read from resulting character-input stream
-                    // using 8192 characters buffer size
-                    reader = new BufferedReader(new InputStreamReader(inputStream));
+                    System.out.println(tempFile.getName());
+                    System.out.println(tempFile.getAbsolutePath());
+                    // Create FileOutputStream to temporary file
+                    FileOutputStream foutstream = new FileOutputStream(tempFile);
 
-                    // Download Data
-                    // Read JSON into a single string
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stringBuffer.append(line + "\n"); // newline added for debugging only
-                    }
+                    // Create Bitmap from download inputstream
+                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
 
-                    if (stringBuffer.length() == 0) {
-                        return null;
-                    }
+                    // Write bitmap to temporary file as png file
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, foutstream);
+
+                    // Flush FileOutputStream
+                    foutstream.flush();
+                    // Close FileOutputStream
+                    foutstream.close();
+
+                    // Create a hashmap object to store image path and position in listview
+                    HashMap<String, Object> hashMBitmap = new HashMap<String, Object>();
+
+                    // Store path to temporary image of avatar
+                    hashMBitmap.put(GIT_AVATAR, tempFile.getPath());
+
+                    // Store position of image in relation to its user name in the listview
+                    hashMBitmap.put(USER_POSITION, position);
+
+                    return hashMBitmap;
 
                 }
 
@@ -309,16 +361,35 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
                 if (urlCon != null) {
                     urlCon.disconnect();
                 }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e(LOG_TAG, "Error closing stream", e);
-                    }
-                }*/
+            }
             return null;
         }
-    }
 
+
+        @Override
+        protected void onPostExecute(HashMap<String, Object> singleUserImage) {
+
+
+            // Get path to image
+            String pathToImage = (String) singleUserImage.get(GIT_AVATAR);
+
+            // Get position of image in listview
+            int position = (int) singleUserImage.get(USER_POSITION);
+
+            // Get adapter of listview
+            SimpleAdapter adapter = (SimpleAdapter) mListView.getAdapter();
+
+            // Get HashMap object at specified position in listview
+            HashMap<String, Object> hashMap = (HashMap<String, Object>) adapter.getItem(position);
+
+            // Overwrite avatar url with avatar path to local file
+            hashMap.put(GIT_AVATAR, pathToImage);
+
+            // Notify listview about dataset change;
+            adapter.notifyDataSetChanged();
+
+
+        }
+    }
 
 }

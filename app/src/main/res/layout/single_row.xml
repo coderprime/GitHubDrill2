@@ -7,8 +7,8 @@
 
     <ImageView
         android:id="@+id/userImageView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
@@ -17,15 +17,18 @@
     <TextView
         android:id="@+id/userTextView"
         android:layout_width="wrap_content"
-        android:layout_height="?attr/listPreferredItemHeightLarge"
+        android:layout_height="?attr/listPreferredItemHeight"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:textColor="@color/primaryColorDark"
-        android:textSize="18sp"
-        android:gravity="center_vertical"
-        android:layout_toEndOf="@+id/userImageView"
-        android:layout_toRightOf="@+id/userImageView"
+
+        android:paddingTop="15dp"
+        android:paddingLeft="30dp"
+        android:textSize="14sp"
+        android:layout_gravity="center_vertical"
         android:hint="USER NAME"
-        android:layout_alignBottom="@+id/userImageView" />
+        android:layout_alignBottom="@+id/userImageView"
+        android:layout_toRightOf="@+id/userImageView"
+        android:layout_toEndOf="@+id/userImageView" />
 
     </RelativeLayout>
