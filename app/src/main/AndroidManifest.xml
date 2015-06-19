@@ -15,6 +15,10 @@
             </intent-filter>
 
         </activity>
+
+        <activity android:name=".RepoView">
+
+        </activity>
     </application>
 
 </manifest>

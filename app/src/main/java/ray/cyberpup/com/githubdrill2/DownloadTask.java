@@ -32,7 +32,7 @@ public class DownloadTask extends Fragment {
 
         public void onPreExecute();
         public void onProgressUpdate(Integer... progress);
-        public void onPostExecute(String results, int resultCode);
+        public void onPostExecute(String results);
         public void onCancelled();
     }
 
@@ -102,7 +102,7 @@ public class DownloadTask extends Fragment {
         @Override
         protected void onPostExecute(String results) {
             if(mListener!=null)
-                mListener.onPostExecute(results,1);
+                mListener.onPostExecute(results);
 
         }
 

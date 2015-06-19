@@ -23,8 +23,6 @@ public class DownloadReposTask extends Fragment {
 
     private static final String LOG_TAG = DownloadReposTask.class.getSimpleName();
 
-    private static final String SORT_BY="sort=";
-
     TaskListener mListener;
     DownloadReposAsyncTask mTask;
     private String mQuery;
@@ -32,7 +30,7 @@ public class DownloadReposTask extends Fragment {
 
         public void onPreExecute();
         public void onProgressUpdate(Integer... progress);
-        public void onPostExecute(String results, int resultCode);
+        public void onPostExecute(String results);
         public void onCancelled();
     }
 
@@ -54,16 +52,19 @@ public class DownloadReposTask extends Fragment {
     }
 
     public void beginTask(){
+
+
         mTask = new DownloadReposAsyncTask();
         mQuery = getArguments().getString("query");
         mTask.execute(mQuery);
+
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        try{
-            mListener = (TaskListener)activity;
+        try {
+            mListener = (TaskListener) activity;
         } catch(ClassCastException e){
             throw new ClassCastException(activity.toString() +
                     " must implement TaskListener");
@@ -101,8 +102,9 @@ public class DownloadReposTask extends Fragment {
 
         @Override
         protected void onPostExecute(String results) {
+
             if(mListener!=null)
-                mListener.onPostExecute(results, 2);
+                mListener.onPostExecute(results);
 
         }
 
@@ -112,8 +114,6 @@ public class DownloadReposTask extends Fragment {
             int percentCompleted = (int)(progress[0]*100f/mInput);
             if(mListener!=null)
                 mListener.onProgressUpdate(percentCompleted);
-
-
 
         }
 
@@ -180,7 +180,7 @@ public class DownloadReposTask extends Fragment {
                     } else {
                         jsonStr = stringBuffer.toString();
                         // DEBUG
-                        Log.d(LOG_TAG, jsonStr);
+                        //Log.d(LOG_TAG, jsonStr);
 
                     }
                     return jsonStr;
