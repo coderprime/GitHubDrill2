@@ -171,14 +171,14 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         }
     }
 
-    public class RayAdapter extends BaseAdapter {
+    public class GitHubViewerAdapter extends BaseAdapter {
 
         Context context;
         List<HashMap<String, Object>> dataList;
 
         int singleRowId;
 
-        public RayAdapter(Context context, List<HashMap<String, Object>> dataList, int singleRowId) {
+        public GitHubViewerAdapter(Context context, List<HashMap<String, Object>> dataList, int singleRowId) {
 
             this.context = context;
             this.singleRowId = singleRowId;
@@ -228,10 +228,10 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         }
     }
 
-    private class ListViewLoaderTask extends AsyncTask<String, Integer, RayAdapter> {
+    private class ListViewLoaderTask extends AsyncTask<String, Integer, GitHubViewerAdapter> {
 
         @Override
-        protected RayAdapter doInBackground(String... jsonString) {
+        protected GitHubViewerAdapter doInBackground(String... jsonString) {
 
             List<HashMap<String, Object>> users = null;
 
@@ -250,7 +250,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             String[] keys = {Constants.GIT_USERID, Constants.GIT_AVATAR};
 
 
-            RayAdapter adapter = new RayAdapter(GitHubDrill2.this, users,
+            GitHubViewerAdapter adapter = new GitHubViewerAdapter(GitHubDrill2.this, users,
                     R.layout.single_row);
 
             return adapter;
@@ -297,7 +297,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
 
         @Override
-        protected void onPostExecute(RayAdapter adapter) {
+        protected void onPostExecute(GitHubViewerAdapter adapter) {
 
             mListView.setAdapter(adapter);
 
@@ -418,7 +418,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             int position = (int) singleUserImage.get(Constants.USER_POSITION);
 
             // Get adapter of listview
-            RayAdapter adapter = (RayAdapter) mListView.getAdapter();
+            GitHubViewerAdapter adapter = (GitHubViewerAdapter) mListView.getAdapter();
 
             // Get HashMap object at specified position in listview
             HashMap<String, Object> hashMap = (HashMap<String, Object>) adapter.getItem(position);

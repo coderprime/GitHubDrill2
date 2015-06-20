@@ -1,6 +1,5 @@
 package ray.cyberpup.com.githubdrill2;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.AsyncTask;
@@ -12,9 +11,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.TypedValue;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
+import android.view.Gravity;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -35,17 +32,13 @@ import java.util.List;
 public class RepoView extends AppCompatActivity implements DownloadReposTask.TaskListener {
 
     private String mRepoUrl = null;
-    private TableLayout mTableLayout = null;
-    private String userName = null;
     private TextView tvUserName = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_table_repo_v2);
-
-        mTableLayout = (TableLayout) findViewById(R.id.tablelayout_listOfRepos);
+        setContentView(R.layout.activity_table_repo_v3);
 
         Intent dataFromIntent = getIntent();
 
@@ -117,10 +110,10 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
     }
 
 
-    private class RepoViewLoaderTask extends AsyncTask<String, Integer, GitRepoAdapter> {
+    private class RepoViewLoaderTask extends AsyncTask<String, Integer, List<HashMap<String,Object>>> {
 
         @Override
-        protected GitRepoAdapter doInBackground(String... jsonString) {
+        protected List<HashMap<String,Object>> doInBackground(String... jsonString) {
 
             // Store list of repositories
             List<HashMap<String, Object>> repos = null;
@@ -134,16 +127,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
                 e.printStackTrace();
             }
 
-            //Keys
-            String[] keysProjection = {Constants.GIT_REPO_NAME,
-                    Constants.GIT_DESCRIPTION,
-                    Constants.GIT_STARS,
-                    Constants.GIT_WATCHERS};
 
-            // Place list into adapter
-            GitRepoAdapter adapter = new GitRepoAdapter(RepoView.this, 0, repos, keysProjection, null);
-
-            return adapter;
+            return repos;
         }
 
         private List<HashMap<String, Object>> getListOfReposFromJson(final String jsonArrayOfRepos) throws JSONException {
@@ -189,169 +174,127 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
         }
 
         @Override
-        protected void onPostExecute(GitRepoAdapter adapter) {
+        protected void onPostExecute(List<HashMap<String,Object>> listOfRepos){
 
-            int count = adapter.getCount();
-            for(int i=0; i<count; i++)
-                mTableLayout.addView(createTableRow((ViewHolderItem) adapter.getItem(0)));
 
+
+            createHeaderRow();
+            TableLayout scrollablePart = (TableLayout) findViewById(R.id.scrollable_part);
+
+
+                int i=0;
+
+                for (HashMap<String, Object> single_repo : listOfRepos) {
+
+                    HashMap<String, Object> repository = new HashMap<String,Object>();
+                    repository.put(Constants.GIT_REPO_NAME, single_repo.get(Constants.GIT_REPO_NAME));
+                    repository.put(Constants.GIT_DESCRIPTION, single_repo.get(Constants.GIT_DESCRIPTION));
+                    repository.put(Constants.GIT_STARS, single_repo.get(Constants.GIT_STARS));
+                    repository.put(Constants.GIT_WATCHERS, single_repo.get(Constants.GIT_WATCHERS));
+
+                    TableRow row = createTableRow(repository);
+                    if(i%2!=0)
+                        row.setBackgroundResource(R.color.rowColoreven);
+                    i++;
+
+                    scrollablePart.addView(row);
+
+                }
+
+
+
+/*
+            int i=0;
+            for(HashMap<String,Object> hm:listOfRepos){
+
+                Set<String> keys = hm.keySet();
+
+                for(String key:keys)
+                    System.out.printf("%s i=%d%n",hm.get(key),i);
+                i++;
+            }
+            */
 
         }
+        int[] mFixedColumnWidths = new int[]{30, 50, 10, 10};
+        // This remains fixed as the rest of the table scrolls
+        private void createHeaderRow() {
+            TableRow.LayoutParams tableRowParams = new TableRow.LayoutParams(
+                    TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
 
-        private TableRow createTableRow(ViewHolderItem singleRepository) {
+
+            int fixedHeaderHeight=60;
+
+            TableRow row = new TableRow(RepoView.this);
+            TableLayout header = (TableLayout) findViewById(R.id.table_header);
+            row.setLayoutParams(tableRowParams);
+            row.setGravity(Gravity.FILL);
+            row.setBackgroundResource(R.color.rowColoreven);
+
+            TextView nameHeader = getTableRowCell("Name", mFixedColumnWidths[0], fixedHeaderHeight);
+            nameHeader.setPadding(convertFromDipToPx(16), 0, 0, 0);
+
+            row.addView(nameHeader);
+            row.addView(getTableRowCell("Description", mFixedColumnWidths[1], fixedHeaderHeight));
+            row.addView(getTableRowCell("Stars", mFixedColumnWidths[2], fixedHeaderHeight));
+
+            TextView watcherHeader = getTableRowCell("Watchers",mFixedColumnWidths[3], fixedHeaderHeight);
+            watcherHeader.setPadding(0,0,convertFromDipToPx(8),0);
+            watcherHeader.setEllipsize(TextUtils.TruncateAt.END);
+            watcherHeader.setSingleLine();
+            row.addView(watcherHeader);
+
+            header.addView(row);
+        }
+
+        private TableRow createTableRow(HashMap<String,Object> singleRepository) {
+
+            TableRow.LayoutParams tableRowParams = new TableRow.LayoutParams(
+                    TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+
+            int fixedRowHeight = 60;
 
             TableRow row = new TableRow(RepoView.this);
 
+            row.setLayoutParams(tableRowParams);
+            row.setGravity(Gravity.FILL);
 
-            TextView tv_name = new TextView(RepoView.this);
-            tv_name.setPadding((int)convertFromDipToPx(8),0,0,0);
-
-            TextView tv_description = new TextView(RepoView.this);
-            TextView tv_stars= new TextView(RepoView.this);
-            TextView tv_watchers= new TextView(RepoView.this);
-
-            tv_name.setText(singleRepository.repositoryName);
-            tv_description.setText(singleRepository.description);
-            tv_stars.setText(Integer.toString(singleRepository.stars));
-            tv_watchers.setText(Integer.toString(singleRepository.watchers));
-
-            tv_name.setWidth(0);
-            tv_name.setTextSize(10);
-            tv_name.setEllipsize(TextUtils.TruncateAt.END);
-            tv_name.setSingleLine();
-
-            tv_description.setWidth(0);
-            tv_description.setTextSize(10);
-            tv_description.setEllipsize(TextUtils.TruncateAt.END);
-            tv_description.setSingleLine();
-
-            tv_stars.setWidth(0);
-            tv_stars.setTextSize(10);
-            tv_stars.setSingleLine();
-            tv_stars.setPadding((int)convertFromDipToPx(16),0,0,0);
-
-            tv_watchers.setWidth(0);
-            tv_watchers.setSingleLine();
-            tv_watchers.setTextSize(10);
-
-            row.addView(tv_name);
-            TableRow.LayoutParams paramsName = (TableRow.LayoutParams) tv_name.getLayoutParams();
-            paramsName.span = 1;
-            tv_name.setLayoutParams(paramsName);
-
-            row.addView(tv_description);
-            TableRow.LayoutParams paramsDesc = (TableRow.LayoutParams) tv_description.getLayoutParams();
-            paramsDesc.span = 5;
-            tv_description.setLayoutParams(paramsDesc);
-
-            row.addView(tv_stars);
-            TableRow.LayoutParams paramsStars = (TableRow.LayoutParams) tv_stars.getLayoutParams();
-            paramsDesc.span = 1;
-            tv_stars.setLayoutParams(paramsDesc);
-
-            row.addView(tv_watchers);
-            TableRow.LayoutParams paramsWatchers = (TableRow.LayoutParams) tv_watchers.getLayoutParams();
-            paramsDesc.span = 1;
-            tv_watchers.setLayoutParams(paramsDesc);
+            TextView repoName = getTableRowCell((String)singleRepository.get(Constants.GIT_REPO_NAME)
+                    , mFixedColumnWidths[0],fixedRowHeight);
+            repoName.setPadding(convertFromDipToPx(8),0,0,0);
+            row.addView(repoName);
+            row.addView(getTableRowCell((String)singleRepository.get(Constants.GIT_DESCRIPTION)
+                    , mFixedColumnWidths[1],fixedRowHeight));
+            row.addView(getTableRowCell(Integer.toString((int)singleRepository.get(Constants.GIT_STARS))
+                    , mFixedColumnWidths[2],fixedRowHeight));
+            row.addView(getTableRowCell(Integer.toString((int)singleRepository.get(Constants.GIT_WATCHERS))
+                    , mFixedColumnWidths[3],fixedRowHeight));
 
             return row;
         }
 
+        private TextView recyclableTextView;
+
+        public TextView getTableRowCell (String text, int widthInPercentOfScreenWidth,
+                                         int fixedHeightInPixels){
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            recyclableTextView = new TextView(RepoView.this);
+            recyclableTextView.setText(text);
+            recyclableTextView.setTextColor(getResources().getColor(R.color.primaryColorDark));
+            recyclableTextView.setTextSize(12);
+            recyclableTextView.setEllipsize(TextUtils.TruncateAt.END);
+            recyclableTextView.setWidth(widthInPercentOfScreenWidth * screenWidth / 100);
+            recyclableTextView.setHeight(fixedHeightInPixels);
+
+            return recyclableTextView;
+        }
+
     }
 
-    private float convertFromDipToPx(int dip){
+    private int convertFromDipToPx(int dip){
         Resources r = getResources();
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, r.getDisplayMetrics());
+        return (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, r.getDisplayMetrics());
     }
 
-    /**
-     * (0) repoName
-     * (1) description
-     * (2) stars
-     * (3) watchers
-     */
 
-    public class ViewHolderItem{
-
-        String repositoryName;
-        String description;
-        int stars;
-        int watchers;
-        ViewHolderItem(String name, String description, int stars, int watchers) {
-            repositoryName = name;
-            this.description = description;
-            this.stars = stars;
-            this.watchers = watchers;
-        }
-    }
-
-    /**
-     * Currently this adapter is written specifically for a tablelayout and hence, getView
-     * is not implemented. However, if a listview is needed in the future along with the
-     * tablelayout, all that's needed is the getView implementation and both views may
-     * share this adapter.
-     */
-    private class GitRepoAdapter extends BaseAdapter{
-
-        // This adapter holds all the repositories for this user
-        List<ViewHolderItem> listOfRepositories = new ArrayList<ViewHolderItem>();
-
-        // Data that is passed to this adapter, each entry is a single repository
-        List<HashMap<String, Object>> list = null;
-        String[] from = null;
-        int[] to = null;
-
-        //Constructor :)
-        GitRepoAdapter(Context context, int layout,
-                       List<HashMap<String, Object>> list,
-                       String[] from,
-                       int[] to) {
-            this.list = list; // list of of repositories
-            this.from = from; // data projection in a single repository (i.e.Name, Description, etc)
-
-            for (HashMap<String, Object> repo : list) {
-                System.out.println((String)repo.get(Constants.GIT_REPO_NAME));
-                System.out.println((String)repo.get(Constants.GIT_DESCRIPTION));
-                System.out.println("");
-            }
-            // Create List to store list of repos as viewHolder objects
-            for(HashMap<String,Object> single_repo:list){
-
-                for(int i=0; i<from.length; i++) {
-                    listOfRepositories.add(new ViewHolderItem
-                            ((String) single_repo.get(Constants.GIT_REPO_NAME),
-                                    (String) single_repo.get(Constants.GIT_DESCRIPTION),
-                                    (int) single_repo.get(Constants.GIT_STARS),
-                                    (int) single_repo.get(Constants.GIT_WATCHERS)));
-                }
-            }
-
-        }
-
-        @Override
-        public int getCount() {
-            return listOfRepositories.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-
-            return listOfRepositories.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-
-            // Does nothing since this adapter is designed to add to a tablelayout which
-            // does not have recycling logic, and it's not worth implementing my
-            // own view recycler.
-
-            return convertView;
-        }
-    }
 }

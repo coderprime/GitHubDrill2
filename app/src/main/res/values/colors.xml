@@ -4,6 +4,9 @@
     <color name = "primaryColor">#2196F3</color>
     <color name="primaryColorDark">#0d47a1</color>
     <color name="colorAccent">#00C853</color>
+    <color name="rowColoreven">#BBDEFB</color>
+    <color name="headerColor">#2196F3</color>
+    <color name="white">#FFFFFF</color>
 
 
 
