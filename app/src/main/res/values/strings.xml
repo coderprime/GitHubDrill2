@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GitHubDrill2</string>
+    <string name="app_name">GitHub Viewer</string>
     <string name="search_hint">Search Users</string>
     <string name="search">Search</string>
 </resources>

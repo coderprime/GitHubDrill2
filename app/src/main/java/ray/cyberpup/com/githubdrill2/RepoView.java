@@ -2,6 +2,7 @@ package ray.cyberpup.com.githubdrill2;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -10,6 +11,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -34,6 +36,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
     private String mRepoUrl = null;
     private TableLayout mTableLayout = null;
+    private String userName = null;
+    private TextView tvUserName = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -44,7 +48,12 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
         mTableLayout = (TableLayout) findViewById(R.id.tablelayout_listOfRepos);
 
         Intent dataFromIntent = getIntent();
+
         mRepoUrl = dataFromIntent.getStringExtra(Constants.GIT_REPOS);
+
+        tvUserName = (TextView) findViewById(R.id.tv_username);
+
+        tvUserName.setText(dataFromIntent.getStringExtra(Constants.GIT_USERID));
 
 
 
@@ -150,6 +159,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
                 listOfRepos.add(getSingleRepository((JSONObject) queryResults.get(i)));
 
             }
+
+
             return listOfRepos;
 
         }
@@ -182,7 +193,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             int count = adapter.getCount();
             for(int i=0; i<count; i++)
-                mTableLayout.addView(createTableRow((ViewHolderItem) adapter.getItem(i)));
+                mTableLayout.addView(createTableRow((ViewHolderItem) adapter.getItem(0)));
+
 
         }
 
@@ -190,12 +202,11 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             TableRow row = new TableRow(RepoView.this);
 
-            TextView tv_name = new TextView(RepoView.this);
 
+            TextView tv_name = new TextView(RepoView.this);
+            tv_name.setPadding((int)convertFromDipToPx(8),0,0,0);
 
             TextView tv_description = new TextView(RepoView.this);
-
-
             TextView tv_stars= new TextView(RepoView.this);
             TextView tv_watchers= new TextView(RepoView.this);
 
@@ -206,32 +217,51 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             tv_name.setWidth(0);
             tv_name.setTextSize(10);
+            tv_name.setEllipsize(TextUtils.TruncateAt.END);
+            tv_name.setSingleLine();
+
             tv_description.setWidth(0);
             tv_description.setTextSize(10);
-            tv_description.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+            tv_description.setEllipsize(TextUtils.TruncateAt.END);
             tv_description.setSingleLine();
 
             tv_stars.setWidth(0);
             tv_stars.setTextSize(10);
+            tv_stars.setSingleLine();
+            tv_stars.setPadding((int)convertFromDipToPx(16),0,0,0);
+
             tv_watchers.setWidth(0);
-            tv_stars.setTextSize(10);
+            tv_watchers.setSingleLine();
+            tv_watchers.setTextSize(10);
 
             row.addView(tv_name);
             TableRow.LayoutParams paramsName = (TableRow.LayoutParams) tv_name.getLayoutParams();
+            paramsName.span = 1;
             tv_name.setLayoutParams(paramsName);
 
             row.addView(tv_description);
             TableRow.LayoutParams paramsDesc = (TableRow.LayoutParams) tv_description.getLayoutParams();
-            paramsDesc.span = 3;
+            paramsDesc.span = 5;
             tv_description.setLayoutParams(paramsDesc);
 
             row.addView(tv_stars);
-            row.addView(tv_watchers);
+            TableRow.LayoutParams paramsStars = (TableRow.LayoutParams) tv_stars.getLayoutParams();
+            paramsDesc.span = 1;
+            tv_stars.setLayoutParams(paramsDesc);
 
+            row.addView(tv_watchers);
+            TableRow.LayoutParams paramsWatchers = (TableRow.LayoutParams) tv_watchers.getLayoutParams();
+            paramsDesc.span = 1;
+            tv_watchers.setLayoutParams(paramsDesc);
 
             return row;
         }
 
+    }
+
+    private float convertFromDipToPx(int dip){
+        Resources r = getResources();
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, r.getDisplayMetrics());
     }
 
     /**
@@ -279,6 +309,11 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
             this.list = list; // list of of repositories
             this.from = from; // data projection in a single repository (i.e.Name, Description, etc)
 
+            for (HashMap<String, Object> repo : list) {
+                System.out.println((String)repo.get(Constants.GIT_REPO_NAME));
+                System.out.println((String)repo.get(Constants.GIT_DESCRIPTION));
+                System.out.println("");
+            }
             // Create List to store list of repos as viewHolder objects
             for(HashMap<String,Object> single_repo:list){
 

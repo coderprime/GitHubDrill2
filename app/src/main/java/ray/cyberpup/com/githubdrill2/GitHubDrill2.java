@@ -13,13 +13,17 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
-import android.widget.SimpleAdapter;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -55,12 +59,14 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                HashMap<String,Object> hm = (HashMap<String, Object>) parent.getItemAtPosition(position);
+                HashMap<String, Object> hm = (HashMap<String, Object>) parent.getItemAtPosition(position);
                 String repoUrl = (String) hm.get(Constants.GIT_REPOS);
+                String userName = (String) hm.get(Constants.GIT_USERID);
 
                 // Pass repository url to RepoView activity
                 Intent repoViewIntent = new Intent(GitHubDrill2.this, RepoView.class);
                 repoViewIntent.putExtra(Constants.GIT_REPOS, repoUrl);
+                repoViewIntent.putExtra(Constants.GIT_USERID, userName);
                 startActivity(repoViewIntent);
             }
         });
@@ -97,7 +103,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         final FragmentManager man = getSupportFragmentManager();
         final Fragment fragment = man.findFragmentByTag(Constants.DOWNLOAD_USERS);
 
-        if(fragment!=null)
+        if (fragment != null)
             man.beginTransaction().remove(fragment).commit();
     }
 
@@ -153,10 +159,79 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         return true;
     }
 
-    private class ListViewLoaderTask extends AsyncTask<String, Integer, SimpleAdapter> {
+    class ViewHolderItem {
+
+        ImageView avatar;
+        TextView name;
+
+        ViewHolderItem(View v){
+
+            name = (TextView) v.findViewById(R.id.userTextView);
+            avatar = (ImageView) v.findViewById(R.id.userImageView);
+        }
+    }
+
+    public class RayAdapter extends BaseAdapter {
+
+        Context context;
+        List<HashMap<String, Object>> dataList;
+
+        int singleRowId;
+
+        public RayAdapter(Context context, List<HashMap<String, Object>> dataList, int singleRowId) {
+
+            this.context = context;
+            this.singleRowId = singleRowId;
+            this.dataList = dataList;
+
+        }
 
         @Override
-        protected SimpleAdapter doInBackground(String... jsonString) {
+        public int getCount() {
+            return dataList.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return dataList.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+
+            View row = convertView;
+            ViewHolderItem holder = null;
+
+            if (row == null) {
+                LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                row = inflater.inflate(singleRowId, parent, false);
+                holder = new ViewHolderItem(row);
+                row.setTag(holder); // recycle findViewById operation
+            }else {
+                holder = (ViewHolderItem) row.getTag();
+            }
+
+            holder.name.setText((String) dataList.get(position).get(Constants.GIT_USERID));
+            File imgFile = new File((String) dataList.get(position).get(Constants.GIT_AVATAR));
+
+            if (imgFile.exists()) {
+                Bitmap avatar = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                holder.avatar.setImageBitmap(avatar);
+            }
+
+            return row;
+        }
+    }
+
+    private class ListViewLoaderTask extends AsyncTask<String, Integer, RayAdapter> {
+
+        @Override
+        protected RayAdapter doInBackground(String... jsonString) {
 
             List<HashMap<String, Object>> users = null;
 
@@ -173,12 +248,10 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
             //Keys
             String[] keys = {Constants.GIT_USERID, Constants.GIT_AVATAR};
-            //ID of Views
-            int[] ids = {R.id.userTextView, R.id.userImageView};
 
-            SimpleAdapter adapter = new SimpleAdapter(GitHubDrill2.this, users,
-                    R.layout.single_row,
-                    keys, ids);
+
+            RayAdapter adapter = new RayAdapter(GitHubDrill2.this, users,
+                    R.layout.single_row);
 
             return adapter;
         }
@@ -224,7 +297,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
 
         @Override
-        protected void onPostExecute(SimpleAdapter adapter) {
+        protected void onPostExecute(RayAdapter adapter) {
 
             mListView.setAdapter(adapter);
 
@@ -345,7 +418,7 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             int position = (int) singleUserImage.get(Constants.USER_POSITION);
 
             // Get adapter of listview
-            SimpleAdapter adapter = (SimpleAdapter) mListView.getAdapter();
+            RayAdapter adapter = (RayAdapter) mListView.getAdapter();
 
             // Get HashMap object at specified position in listview
             HashMap<String, Object> hashMap = (HashMap<String, Object>) adapter.getItem(position);
