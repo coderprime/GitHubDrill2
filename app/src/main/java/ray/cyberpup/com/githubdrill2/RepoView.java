@@ -233,14 +233,22 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             TextView nameHeader = getTableRowCell("Name", mFixedColumnWidths[0], fixedHeaderHeight);
             nameHeader.setPadding(convertFromDipToPx(16), 0, 0, 0);
-
+            nameHeader.setTextSize(convertFromDipToPx(10));
             row.addView(nameHeader);
-            row.addView(getTableRowCell("Description", mFixedColumnWidths[1], fixedHeaderHeight));
-            row.addView(getTableRowCell("Stars", mFixedColumnWidths[2], fixedHeaderHeight));
+
+            TextView descHeader = getTableRowCell("Description", mFixedColumnWidths[1], fixedHeaderHeight);
+            descHeader.setTextSize(convertFromDipToPx(10));
+            row.addView(descHeader);
+
+
+            TextView starsHeader = getTableRowCell("Stars", mFixedColumnWidths[2], fixedHeaderHeight);
+            starsHeader.setTextSize(convertFromDipToPx(10));
+            row.addView(starsHeader);
 
             TextView watcherHeader = getTableRowCell("Watchers",mFixedColumnWidths[3], fixedHeaderHeight);
             watcherHeader.setPadding(0,0,convertFromDipToPx(8),0);
             watcherHeader.setEllipsize(TextUtils.TruncateAt.END);
+            watcherHeader.setTextSize(convertFromDipToPx(10));
             watcherHeader.setSingleLine();
             row.addView(watcherHeader);
 
@@ -261,7 +269,7 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             TextView repoName = getTableRowCell((String)singleRepository.get(Constants.GIT_REPO_NAME)
                     , mFixedColumnWidths[0],fixedRowHeight);
-            repoName.setPadding(convertFromDipToPx(8),0,0,0);
+            repoName.setPadding(convertFromDipToPx(16),0,0,0);
             row.addView(repoName);
             row.addView(getTableRowCell((String)singleRepository.get(Constants.GIT_DESCRIPTION)
                     , mFixedColumnWidths[1],fixedRowHeight));
@@ -281,8 +289,10 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
             recyclableTextView = new TextView(RepoView.this);
             recyclableTextView.setText(text);
             recyclableTextView.setTextColor(getResources().getColor(R.color.primaryColorDark));
-            recyclableTextView.setTextSize(12);
+            recyclableTextView.setTextSize(convertFromDipToPx(8));
             recyclableTextView.setEllipsize(TextUtils.TruncateAt.END);
+            recyclableTextView.setHint("NA");
+            recyclableTextView.setMaxLines(3);
             recyclableTextView.setWidth(widthInPercentOfScreenWidth * screenWidth / 100);
             recyclableTextView.setHeight(fixedHeightInPixels);
 
