@@ -1,5 +1,7 @@
 package ray.cyberpup.com.githubdrill2;
 
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.AsyncTask;
@@ -33,6 +35,7 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
     private String mRepoUrl = null;
     private TextView tvUserName = null;
+    private ProgressDialog mProgress;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -69,24 +72,50 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
         }
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
+
         downloadRepos();
+
+
     }
+
 
     @Override
     public void onPreExecute() {
+
+        System.out.println("onPreExecute RepoView..progress dialog");
+        mProgress = new ProgressDialog(this);
+        mProgress.setTitle(R.string.downloading);
+        mProgress.setCancelable(true);
+        mProgress.setIndeterminate(true);
+        mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
+
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                DownloadReposTask taskFrag = (DownloadReposTask) getSupportFragmentManager().
+                        findFragmentByTag(Constants.DOWNLOAD_REPOS);
+                if (taskFrag != null)
+                    taskFrag.cancel(false);
+            }
+        });
+        mProgress.show();
 
     }
 
     @Override
     public void onProgressUpdate(Integer... progress) {
 
+
     }
 
     @Override
     public void onPostExecute(String results) {
+
+        if(mProgress!=null)
+            mProgress.dismiss();
 
         // Parse json repositories string & returns a custom adapter called GitRepoAdapter
         RepoViewLoaderTask task = new RepoViewLoaderTask();
@@ -106,7 +135,9 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
     @Override
     public void onCancelled() {
-
+        if(mProgress!=null)
+            mProgress.dismiss();
+        cleanUp();
     }
 
 
@@ -130,6 +161,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             return repos;
         }
+
+
 
         private List<HashMap<String, Object>> getListOfReposFromJson(final String jsonArrayOfRepos) throws JSONException {
 
@@ -243,6 +276,8 @@ public class RepoView extends AppCompatActivity implements DownloadReposTask.Tas
 
             TextView starsHeader = getTableRowCell("Stars", mFixedColumnWidths[2], fixedHeaderHeight);
             starsHeader.setTextSize(convertFromDipToPx(10));
+            starsHeader.setSingleLine();
+            starsHeader.setEllipsize(TextUtils.TruncateAt.END);
             row.addView(starsHeader);
 
             TextView watcherHeader = getTableRowCell("Watchers",mFixedColumnWidths[3], fixedHeaderHeight);

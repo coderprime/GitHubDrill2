@@ -2,4 +2,5 @@
     <string name="app_name">GitHub Viewer</string>
     <string name="search_hint">Search Users</string>
     <string name="search">Search</string>
+    <string name="downloading">downloading...</string>
 </resources>

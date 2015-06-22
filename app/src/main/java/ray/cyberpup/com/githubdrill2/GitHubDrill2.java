@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -24,6 +26,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -59,15 +62,23 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                HashMap<String, Object> hm = (HashMap<String, Object>) parent.getItemAtPosition(position);
-                String repoUrl = (String) hm.get(Constants.GIT_REPOS);
-                String userName = (String) hm.get(Constants.GIT_USERID);
 
-                // Pass repository url to RepoView activity
-                Intent repoViewIntent = new Intent(GitHubDrill2.this, RepoView.class);
-                repoViewIntent.putExtra(Constants.GIT_REPOS, repoUrl);
-                repoViewIntent.putExtra(Constants.GIT_USERID, userName);
-                startActivity(repoViewIntent);
+                if (isNetworkConnected()) {
+                    HashMap<String, Object> hm = (HashMap<String, Object>) parent.getItemAtPosition(position);
+                    String repoUrl = (String) hm.get(Constants.GIT_REPOS);
+                    String userName = (String) hm.get(Constants.GIT_USERID);
+
+                    // Pass repository url to RepoView activity
+                    Intent repoViewIntent = new Intent(GitHubDrill2.this, RepoView.class);
+                    repoViewIntent.putExtra(Constants.GIT_REPOS, repoUrl);
+                    repoViewIntent.putExtra(Constants.GIT_USERID, userName);
+                    startActivity(repoViewIntent);
+                }else {
+                    Toast.makeText(GitHubDrill2.this,
+                            "No Network Connection", Toast.LENGTH_SHORT).show();
+                }
+
+
             }
         });
     }
@@ -109,10 +120,17 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
     @Override
     public void onCancelled() {
-        // do nothing
+        cleanUp();
+    }
+
+    public boolean isNetworkConnected() {
+        final ConnectivityManager conMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        final NetworkInfo activeNetwork = conMgr.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.getState() == NetworkInfo.State.CONNECTED;
     }
 
     private void performSearch(final String query) {
+
         DownloadTask taskFrag = (DownloadTask) getSupportFragmentManager().
                 findFragmentByTag(Constants.DOWNLOAD_USERS);
 
@@ -126,6 +144,8 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
 
             taskFrag.beginTask();
         }
+
+
 
     }
 
@@ -147,7 +167,12 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
             @Override
             public boolean onQueryTextSubmit(final String query) {
 
-                performSearch(query);
+                if (isNetworkConnected()) {
+
+                    performSearch(query);
+
+                } else
+                    Toast.makeText(GitHubDrill2.this, "No Network Connection", Toast.LENGTH_SHORT).show();
                 return false;
             }
 
@@ -316,13 +341,22 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
                 avatarDownload.put(Constants.GIT_AVATAR, imgUrl);
                 avatarDownload.put(Constants.USER_POSITION, i);
 
-                imageLoaderTask.execute(avatarDownload);
+                if (isNetworkConnected()) {
+                    imageLoaderTask.execute(avatarDownload);
+                }else
+                    Toast.makeText(GitHubDrill2.this,
+                            "No Network Connection", Toast.LENGTH_SHORT).show();
+
             }
      /*       */
 
         }
 
-
+        @Override
+        protected void onCancelled() {
+            System.out.println("Cancelled!");
+            cleanUp();
+        }
     }
 
     private class ImageLoaderTask extends AsyncTask<HashMap<String, Object>, Void,
@@ -411,23 +445,26 @@ public class GitHubDrill2 extends AppCompatActivity implements DownloadTask.Task
         @Override
         protected void onPostExecute(HashMap<String, Object> singleUserImage) {
 
-            // Get path to image
-            String pathToImage = (String) singleUserImage.get(Constants.GIT_AVATAR);
 
-            // Get position of image in listview
-            int position = (int) singleUserImage.get(Constants.USER_POSITION);
+                // Get path to image
+                String pathToImage = (String) singleUserImage.get(Constants.GIT_AVATAR);
 
-            // Get adapter of listview
-            GitHubViewerAdapter adapter = (GitHubViewerAdapter) mListView.getAdapter();
+                // Get position of image in listview
+                int position = (int) singleUserImage.get(Constants.USER_POSITION);
 
-            // Get HashMap object at specified position in listview
-            HashMap<String, Object> hashMap = (HashMap<String, Object>) adapter.getItem(position);
+                // Get adapter of listview
+                GitHubViewerAdapter adapter = (GitHubViewerAdapter) mListView.getAdapter();
 
-            // Overwrite avatar url with avatar path to local file
-            hashMap.put(Constants.GIT_AVATAR, pathToImage);
+                // Get HashMap object at specified position in listview
+                HashMap<String, Object> hashMap = (HashMap<String, Object>) adapter.getItem(position);
 
-            // Notify listview about dataset change;
-            adapter.notifyDataSetChanged();
+                // Overwrite avatar url with avatar path to local file
+                hashMap.put(Constants.GIT_AVATAR, pathToImage);
+
+                // Notify listview about dataset change;
+                adapter.notifyDataSetChanged();
+
+
 
 
         }

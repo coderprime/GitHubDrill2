@@ -49,20 +49,28 @@ public class DownloadReposTask extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        System.out.println("onCreate");
     }
 
     public void beginTask(){
 
 
+
+
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         mTask = new DownloadReposAsyncTask();
         mQuery = getArguments().getString("query");
         mTask.execute(mQuery);
-
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+
         try {
             mListener = (TaskListener) activity;
         } catch(ClassCastException e){
@@ -85,8 +93,8 @@ public class DownloadReposTask extends Fragment {
     }
 
 
-    void cancel() {
-        mTask.cancel(true);
+    void cancel(boolean mayInterruptIfRunning) {
+        mTask.cancel(mayInterruptIfRunning);
     }
 
     int mInput;
@@ -123,7 +131,11 @@ public class DownloadReposTask extends Fragment {
             if(query[0].length() == 0)
                 return null;
 
-            return downloadJSON(query[0]);
+            String result = downloadJSON(query[0]);
+            if(isCancelled())
+                return null;
+
+            return result;
 
 
         }
